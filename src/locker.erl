@@ -429,6 +429,7 @@ handle_cast({trans_log, _FromNode, TransLog}, State0) ->
     %% In the future, we might want to offset the lease length in the
     %% master before writing it to the log to ensure the lease length
     %% is at least reasonably similar for all replicas.
+    Now = now_to_ms(),
     ReplayF =
         fun ({write, Key, Value, LeaseLength}, State) ->
                 %% With multiple masters, we will get multiple writes
@@ -441,7 +442,7 @@ handle_cast({trans_log, _FromNode, TransLog}, State0) ->
                 ets:insert(?DB, {Key, Value, ExpireAt}),
                 schedule_expire(ExpireAt, Key),
 
-                NewWaiters = notify_lock_waiter(Key, Value, State#state.waiters),
+                NewWaiters = notify_lock_waiter(Now, Key, Value, State#state.waiters),
                 State#state{waiters = NewWaiters};
 
             ({extend_lease, Key, Value, ExtendLength}, State) ->
@@ -529,8 +530,7 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 
 %% Notify waiter on a lock that the lock has been taken.
-notify_lock_waiter(Key, Value, AllWaiters) ->
-    Now = now_to_ms(),
+notify_lock_waiter(Now, Key, Value, AllWaiters) ->
     KeyWaiter = fun ({K, _, _}) when Key =:= K -> true;
                     (_) -> false
                 end,
@@ -546,7 +546,6 @@ notify_lock_waiter(Key, Value, AllWaiters) ->
 
 %% Notify waiter of a release of a lock, even if it is expired.
 notify_release_waiter(Key, Value, AllWaiters) ->
-    Now = now_to_ms(),
     KeyWaiter = fun ({K, _, _}) when Key =:= K -> true;
                     (_) -> false
                 end,

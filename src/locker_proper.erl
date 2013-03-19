@@ -5,8 +5,8 @@
 
 -record(state, {master_leases, replicated_leases}).
 
--define(MASTERS, ['a@knutin']).
--define(REPLICAS, ['b@knutin']).
+-define(MASTERS, ['a@vulcan']).
+-define(REPLICAS, ['b@vulcan']).
 
 test() ->
     proper:quickcheck(prop_lock_release()).
@@ -104,8 +104,6 @@ next_state(S, _V, {call, _, replicate, []}) ->
 next_state(S, _V, {call, _, read, _}) ->
     S.
 
-
-
 postcondition(S, {call, _, lock, [_, Key, _Value]}, Result) ->
     case Result of
         {ok, _, _, _} ->
@@ -152,7 +150,7 @@ postcondition(S, {call, _, read, [Node, Key]}, Result) ->
 
 setup(Name) when is_atom(Name) ->
     {ok, Node} = slave:start_link(list_to_atom(net_adm:localhost()), Name),
-    true = rpc:call(Node, code, add_path, ["ebin"]),
+    true = rpc:call(Node, code, add_path, ["deps/locker/ebin"]),
     {ok, _} = rpc:call(Node, locker, start_link, [1]),
 
     {ok, _, _, R1, R2, R3} = rpc:call(Node, locker, get_debug_state, []),
