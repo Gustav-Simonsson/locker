@@ -13,7 +13,7 @@
 -export([start_link/1, start_link/4]).
 -export([set_w/2, set_nodes/3]).
 
--export([lock/2, lock/3, lock/4, extend_lease/3, release/2]).
+-export([lock/2, lock/3, lock/4, extend_lease/3, release/2, release/3]).
 -export([wait_for/2, wait_for_release/2]).
 -export([dirty_read/1, master_dirty_read/1]).
 -export([lag/0, summary/0]).
@@ -34,7 +34,7 @@
           %% push_replica timer
           trans_log = [],
 
-          %% Clients can wait for a key to become available
+          %% Clients can wait for a key to become locked
           waiters = [],
 
           %% Clients can wait for a lock to be released
