@@ -141,7 +141,12 @@ wait_for(Key, Timeout) ->
     end.
 
 wait_for_release(Key, Timeout) ->
-    gen_server:call(locker, {wait_for_release, Key, Timeout}, Timeout).
+    case dirty_read(Key) of
+        {ok, _Value} ->
+            gen_server:call(locker, {wait_for_release, Key, Timeout}, Timeout);
+        {error, not_found} ->
+            {error, key_not_locked}
+    end.
 
 release(Key, Value) ->
     release(Key, Value, 5000).
@@ -480,7 +485,8 @@ handle_cast({trans_log, _FromNode, TransLog}, State0) ->
                 ets:insert(?DB, {Key, Value, ExpireAt}),
                 schedule_expire(ExpireAt, Key),
 
-                NewWaiters = notify_lock_waiter(Now, Key, Value, State#state.waiters),
+                NewWaiters = notify_lock_waiter(Now, Key, Value,
+                                                State#state.waiters),
                 State#state{waiters = NewWaiters};
 
             ({extend_lease, Key, Value, ExtendLength}, State) ->
